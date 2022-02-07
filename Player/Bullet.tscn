@@ -1,7 +1,41 @@
 [gd_scene load_steps=4 format=2]
 
-[ext_resource path="res://Player/Bullet.gd" type="Script" id=1]
 [ext_resource path="res://Assets/Bullet.png" type="Texture" id=2]
+
+[sub_resource type="GDScript" id=2]
+script/source = "extends KinematicBody2D
+
+var velocity = Vector2.ZERO
+var speed = 500.0
+var damage = 1
+
+onready var Explosion = load(\"res://Effects/Explosion.tscn\")
+var Effects = null
+
+func _ready():
+	velocity = Vector2(0,-speed).rotated(rotation)
+
+func _physics_process(_delta):
+	velocity = move_and_slide(velocity, Vector2.ZERO)
+	position.x = wrapf(position.x, 0, 1024)
+	position.y = wrapf(position.y, 0, 600)
+	
+
+
+func _on_Area2D_body_entered(body):
+	if body.has_method(\"damage\"):
+		body.damage(damage)
+	Effects = get_node_or_null(\"/root/Game/Effects\")
+	if Effects != null:
+		var explosion = Explosion.instance()
+		Effects.add_child(explosion)
+		explosion.global_position = global_position
+	queue_free()
+
+
+func _on_Timer_timeout():
+	queue_free()
+"
 
 [sub_resource type="CircleShape2D" id=1]
 radius = 12.0
@@ -9,7 +43,7 @@ radius = 12.0
 [node name="Bullet" type="KinematicBody2D"]
 collision_layer = 0
 collision_mask = 0
-script = ExtResource( 1 )
+script = SubResource( 2 )
 
 [node name="Sprite" type="Sprite" parent="."]
 texture = ExtResource( 2 )
@@ -21,10 +55,12 @@ polygon = PoolVector2Array( 12.4, 0.5, 11.3, 3, 9.7, 3, -0.6, 12.4, -3, 11.3, -3
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
 shape = SubResource( 1 )
+one_way_collision_margin = 0.0
 
 [node name="Timer" type="Timer" parent="."]
 one_shot = true
 autostart = true
 
+[connection signal="area_shape_entered" from="Area2D" to="." method="_on_Area2D_area_shape_entered"]
 [connection signal="body_entered" from="Area2D" to="." method="_on_Area2D_body_entered"]
 [connection signal="timeout" from="Timer" to="." method="_on_Timer_timeout"]
